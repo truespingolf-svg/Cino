@@ -1,0 +1,6 @@
+{
+  "name": "VYBE+ — Premium Streaming Platform",
+  "description": "Entertainment without limits. Cinematic streaming service with movies, TV shows, seasons, custom player, and staff administration portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

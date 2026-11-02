@@ -7,23 +7,30 @@ import { UploadManager } from '../components/StaffPortal/UploadManager';
 import { IntroVideoManager } from '../components/StaffPortal/IntroVideoManager';
 import { StatsManager } from '../components/StaffPortal/StatsManager';
 import { MasterSecurityManager } from '../components/StaffPortal/MasterSecurityManager';
-import { LayoutDashboard, Film, Tv, Newspaper, UploadCloud, Video, BarChart3, KeyRound, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Film, Tv, Newspaper, UploadCloud, Video, BarChart3, KeyRound, ShieldAlert, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const StaffPortalPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, setShowStaffAuth } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'movies' | 'shows' | 'news' | 'uploads' | 'intro' | 'stats' | 'security'>('dashboard');
 
   if (!user.isStaff) {
     return (
       <div className="max-w-xl mx-auto px-4 pt-36 pb-24 text-center space-y-6">
-        <div className="w-20 h-20 mx-auto rounded-3xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-500">
+        <div className="w-20 h-20 mx-auto rounded-3xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-500 shadow-xl shadow-red-900/20">
           <ShieldAlert className="w-10 h-10" />
         </div>
         <h1 className="text-3xl font-black text-white">Staff Access Restricted</h1>
         <p className="text-zinc-400 text-sm">
-          Please enter your administrative access code via the top right menu to unlock staff management.
+          You are currently in Guest Viewer mode. Staff controls require entering a valid administrative access code.
         </p>
+        <button
+          onClick={() => setShowStaffAuth(true)}
+          className="inline-flex items-center space-x-2 px-8 py-3.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-red-600/30 transition"
+        >
+          <Lock className="w-4 h-4" />
+          <span>Enter Staff Access Code</span>
+        </button>
       </div>
     );
   }

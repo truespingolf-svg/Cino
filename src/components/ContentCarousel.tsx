@@ -25,7 +25,7 @@ export const ContentCarousel: React.FC<ContentCarouselProps> = ({ title, items, 
     <div className="space-y-4 py-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center space-x-3">
-          <span className="w-2.5 h-7 rounded-full bg-gradient-to-b from-purple-500 to-indigo-600 inline-block" />
+          <span className="w-2.5 h-7 rounded-full bg-gradient-to-b from-red-500 to-red-700 inline-block shadow-sm shadow-red-600/50" />
           <span>{title}</span>
         </h2>
         
@@ -33,12 +33,14 @@ export const ContentCarousel: React.FC<ContentCarouselProps> = ({ title, items, 
           <button
             onClick={() => handleScroll('left')}
             className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 transition shadow"
+            aria-label="Scroll left"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={() => handleScroll('right')}
             className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 transition shadow"
+            aria-label="Scroll right"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

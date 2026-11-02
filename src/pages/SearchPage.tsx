@@ -8,18 +8,18 @@ export const SearchPage: React.FC = () => {
   const [shows, setShows] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/movies').then(res => res.json()).then(data => setMovies(data));
-    fetch('/api/shows').then(res => res.json()).then(data => setShows(data));
+    fetch('/api/movies').then(res => res.json()).then(data => setMovies(Array.isArray(data) ? data : []));
+    fetch('/api/shows').then(res => res.json()).then(data => setShows(Array.isArray(data) ? data : []));
   }, []);
 
   const resultsMovies = movies.filter(m => 
-    m.title.toLowerCase().includes(query.toLowerCase()) ||
+    m.title?.toLowerCase().includes(query.toLowerCase()) ||
     m.genres?.some((g: string) => g.toLowerCase().includes(query.toLowerCase())) ||
     m.director?.toLowerCase().includes(query.toLowerCase())
   );
 
   const resultsShows = shows.filter(s =>
-    s.title.toLowerCase().includes(query.toLowerCase()) ||
+    s.title?.toLowerCase().includes(query.toLowerCase()) ||
     s.genres?.some((g: string) => g.toLowerCase().includes(query.toLowerCase()))
   );
 
@@ -38,7 +38,7 @@ export const SearchPage: React.FC = () => {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Search movies, TV shows, genres..."
-          className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-14 pr-6 py-4 text-white text-lg focus:outline-none focus:border-purple-500 shadow-xl"
+          className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-14 pr-6 py-4 text-white text-lg focus:outline-none focus:border-red-600 shadow-xl"
         />
       </div>
 
@@ -47,7 +47,7 @@ export const SearchPage: React.FC = () => {
           {resultsMovies.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-2xl font-bold text-white flex items-center space-x-2">
-                <Film className="w-5 h-5 text-purple-400" />
+                <Film className="w-5 h-5 text-red-500" />
                 <span>Movies ({resultsMovies.length})</span>
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
@@ -63,7 +63,7 @@ export const SearchPage: React.FC = () => {
           {resultsShows.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-2xl font-bold text-white flex items-center space-x-2">
-                <Tv className="w-5 h-5 text-indigo-400" />
+                <Tv className="w-5 h-5 text-red-500" />
                 <span>TV Shows ({resultsShows.length})</span>
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">

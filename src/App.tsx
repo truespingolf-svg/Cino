@@ -21,7 +21,7 @@ const AppContent: React.FC = () => {
   const { activeTab, playingItem } = useAuth();
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col selection:bg-purple-600 selection:text-white">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col selection:bg-red-600 selection:text-white">
       <Navbar />
 
       <main className="flex-1">
@@ -37,12 +37,11 @@ const AppContent: React.FC = () => {
       {/* Footer */}
       <footer className="border-t border-zinc-900 bg-zinc-950 py-12 px-4 sm:px-6 lg:px-8 text-center text-xs text-zinc-500 space-y-4">
         <div className="flex items-center justify-center space-x-2">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white font-black text-xs">
-            V+
-          </div>
-          <span className="font-bold text-zinc-400 text-sm">VYBE+ Entertainment</span>
+          <span className="text-xl font-black tracking-wider text-white uppercase font-sans">
+            Cine<span className="text-red-600">vo</span>
+          </span>
         </div>
-        <p>© {new Date().getFullYear()} VYBE+ Inc. All rights reserved. Entertainment without limits.</p>
+        <p>© {new Date().getFullYear()} Cinevo Entertainment. All rights reserved. Entertainment without limits.</p>
         <div className="flex justify-center space-x-6 text-zinc-400 font-medium">
           <a href="#" className="hover:text-white transition">Privacy Policy</a>
           <a href="#" className="hover:text-white transition">Terms of Service</a>

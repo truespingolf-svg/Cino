@@ -4,10 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { StaffAuthModal } from './StaffAuthModal';
 
 export const Navbar: React.FC = () => {
-  const { user, setUser, activeTab, setActiveTab } = useAuth();
+  const { user, setUser, activeTab, setActiveTab, showStaffAuth, setShowStaffAuth } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showStaffAuth, setShowStaffAuth] = useState(false);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -21,7 +20,6 @@ export const Navbar: React.FC = () => {
     { id: 'home', label: 'HOME', icon: Home },
     { id: 'movies', label: 'MOVIES', icon: Film },
     { id: 'shows', label: 'TV SHOWS', icon: Tv },
-    { id: 'shows', label: 'SERIES', icon: Tv },
     { id: 'news', label: 'NEWS', icon: Newspaper },
     { id: 'mylist', label: 'MY LIST', icon: Bookmark },
   ];
@@ -35,15 +33,19 @@ export const Navbar: React.FC = () => {
   };
 
   const handleSignOut = () => {
+    sessionStorage.removeItem('cinevo_session_id');
+    localStorage.removeItem('cinevo_session_id');
     setUser({
       id: 'guest',
       name: 'Guest Viewer',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop',
-      isStaff: false
+      isStaff: false,
+      isMaster: false
     });
     setShowProfileMenu(false);
-    setActiveTab('home');
-    alert('Signed out of staff mode successfully. You are browsing as a guest.');
+    if (activeTab === 'staff') {
+      setActiveTab('home');
+    }
   };
 
   return (
@@ -64,11 +66,11 @@ export const Navbar: React.FC = () => {
             </button>
 
             <div className="hidden md:flex items-center space-x-6">
-              {navItems.map((item, idx) => {
+              {navItems.map((item) => {
                 const isActive = activeTab === item.id;
                 return (
                   <button
-                    key={idx}
+                    key={item.id}
                     onClick={() => setActiveTab(item.id)}
                     className={`text-xs font-bold tracking-wider transition-all ${
                       isActive 
@@ -102,7 +104,7 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <Shield className="w-3.5 h-3.5" />
-              <span>STAFF PORTAL</span>
+              <span>{user.isStaff ? 'STAFF PORTAL' : 'STAFF ACCESS'}</span>
             </button>
 
             {/* User Profile Dropdown */}
@@ -120,7 +122,7 @@ export const Navbar: React.FC = () => {
                   <div className="px-4 py-3 border-b border-zinc-800">
                     <p className="text-sm font-semibold text-white">{user.name}</p>
                     <p className="text-xs text-red-500 font-medium">
-                      {user.isStaff ? 'Administrator & Staff' : 'Guest Viewer'}
+                      {user.isStaff ? (user.isMaster ? 'Master Administrator' : 'Staff Member') : 'Guest Viewer'}
                     </p>
                   </div>
 
@@ -130,7 +132,7 @@ export const Navbar: React.FC = () => {
                         if (!user.isStaff) {
                           setShowStaffAuth(true);
                         } else {
-                          setUser({ ...user, isStaff: false, name: 'Guest Viewer' });
+                          handleSignOut();
                         }
                         setShowProfileMenu(false);
                       }}
@@ -138,7 +140,7 @@ export const Navbar: React.FC = () => {
                     >
                       <span className="flex items-center space-x-2">
                         <Shield className="w-4 h-4 text-red-500" />
-                        <span>{user.isStaff ? 'Lock Staff Mode' : 'Staff Access (PIN 2513)'}</span>
+                        <span>{user.isStaff ? 'Lock Staff Access' : 'Unlock Staff Access'}</span>
                       </span>
                       {user.isStaff && <Check className="w-4 h-4 text-red-600" />}
                     </button>
@@ -155,15 +157,17 @@ export const Navbar: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="border-t border-zinc-800 pt-1">
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-zinc-800/80 flex items-center space-x-2 transition"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Sign Out / Lock Staff</span>
-                    </button>
-                  </div>
+                  {user.isStaff && (
+                    <div className="border-t border-zinc-800 pt-1">
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-zinc-800/80 flex items-center space-x-2 transition"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out / Lock Staff</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

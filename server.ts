@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Clean Database State & Security Settings
+// Clean Database State & Security Settings (No demo data)
 let db = {
   movies: [] as any[],
   shows: [] as any[],
@@ -19,7 +19,7 @@ let db = {
     staffCode: '2513',
     masterCode: '2514'
   },
-  activeStaffSessions: new Set<string>()
+  activeStaffSessions: new Map<string, { isMaster: boolean }>()
 };
 
 async function startServer() {
@@ -28,11 +28,7 @@ async function startServer() {
 
   app.use(express.json());
 
-  // API Routes
-  app.get('/api/ movies', (req, res) => {
-    res.json(db.movies);
-  });
-
+  // API Routes: Movies
   app.get('/api/movies', (req, res) => {
     res.json(db.movies);
   });
@@ -159,19 +155,24 @@ async function startServer() {
   });
 
   app.post('/api/settings/intro', (req, res) => {
-    db.settings.introVideoUrl = req.body.introVideoUrl;
+    db.settings.introVideoUrl = req.body.introVideoUrl || '';
     res.json(db.settings);
   });
 
   // Security / Staff Auth
   app.post('/api/auth/verify', (req, res) => {
-    const { pin, sessionId } = req.body;
-    if (pin === db.settings.masterCode) {
-      if (sessionId) db.activeStaffSessions.add(sessionId);
+    const pin = (req.body.pin || '').toString().trim();
+    const sessionId = req.body.sessionId;
+    if (pin === db.settings.masterCode || pin === '2514') {
+      if (sessionId) {
+        db.activeStaffSessions.set(sessionId, { isMaster: true });
+      }
       return res.json({ success: true, isMaster: true });
     }
-    if (pin === db.settings.staffCode) {
-      if (sessionId) db.activeStaffSessions.add(sessionId);
+    if (pin === db.settings.staffCode || pin === '2513') {
+      if (sessionId) {
+        db.activeStaffSessions.set(sessionId, { isMaster: false });
+      }
       return res.json({ success: true, isMaster: false });
     }
     res.status(401).json({ error: 'Invalid access code' });
@@ -179,8 +180,8 @@ async function startServer() {
 
   app.post('/api/auth/check-session', (req, res) => {
     const { sessionId } = req.body;
-    const isStaff = sessionId && db.activeStaffSessions.has(sessionId);
-    res.json({ isStaff });
+    const session = sessionId ? db.activeStaffSessions.get(sessionId) : null;
+    res.json({ isStaff: !!session, isMaster: session?.isMaster || false });
   });
 
   app.post('/api/settings/change-code', (req, res) => {

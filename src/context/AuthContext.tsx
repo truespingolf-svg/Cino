@@ -3,7 +3,7 @@ import { UserProfile, WatchlistItem, WatchHistoryItem } from '../types';
 
 interface AuthContextType {
   user: UserProfile;
-  setUser: (user: UserProfile) => void;
+  setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
   watchlist: WatchlistItem[];
   toggleWatchlist: (contentId: string, contentType: 'movie' | 'show') => Promise<void>;
   isInWatchlist: (contentId: string) => boolean;
@@ -17,34 +17,39 @@ interface AuthContextType {
   setSelectedContent: (content: any | null) => void;
   playingItem: { item: any; type: 'movie' | 'episode'; episode?: any; season?: any } | null;
   setPlayingItem: (item: any | null) => void;
+  showStaffAuth: boolean;
+  setShowStaffAuth: (show: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Everyone joins as guest by default. Staff can only be accessed via typing codes.
   const [user, setUser] = useState<UserProfile>({
-    id: 'user-1',
-    name: 'Staff',
+    id: 'guest',
+    name: 'Guest Viewer',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop',
-    isStaff: true
+    isStaff: false,
+    isMaster: false
   });
 
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [history, setHistory] = useState<WatchHistoryItem[]>([]);
-  const [ratings, setRatings] = useState<Record<string, number>>({ 'm1': 5 });
+  const [ratings, setRatings] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<string>('home');
   const [selectedContent, setSelectedContent] = useState<any | null>(null);
   const [playingItem, setPlayingItem] = useState<any | null>(null);
+  const [showStaffAuth, setShowStaffAuth] = useState<boolean>(false);
 
   useEffect(() => {
     fetch(`/api/watchlist/${user.id}`)
       .then(res => res.json())
-      .then(data => setWatchlist(data))
+      .then(data => setWatchlist(Array.isArray(data) ? data : []))
       .catch(err => console.error('Failed to load watchlist', err));
 
     fetch(`/api/history/${user.id}`)
       .then(res => res.json())
-      .then(data => setHistory(data))
+      .then(data => setHistory(Array.isArray(data) ? data : []))
       .catch(err => console.error('Failed to load history', err));
   }, [user.id]);
 
@@ -56,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ userId: user.id, contentId, contentType })
       });
       const data = await res.json();
-      setWatchlist(data.watchlist);
+      setWatchlist(data.watchlist || []);
     } catch (err) {
       console.error('Failed to update watchlist', err);
     }
@@ -117,7 +122,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       selectedContent,
       setSelectedContent,
       playingItem,
-      setPlayingItem
+      setPlayingItem,
+      showStaffAuth,
+      setShowStaffAuth
     }}>
       {children}
     </AuthContext.Provider>

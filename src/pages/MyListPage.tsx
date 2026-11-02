@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { MovieCard } from '../components/MovieCard';
-import { Bookmark, Clock, Star, Film } from 'lucide-react';
+import { Bookmark, Clock } from 'lucide-react';
 
 export const MyListPage: React.FC = () => {
-  const { user, watchlist, history, ratings } = useAuth();
+  const { watchlist, history } = useAuth();
   const [movies, setMovies] = useState<any[]>([]);
   const [shows, setShows] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'watchlist' | 'history'>('watchlist');
 
   useEffect(() => {
-    fetch('/api/movies').then(res => res.json()).then(data => setMovies(data));
-    fetch('/api/shows').then(res => res.json()).then(data => setShows(data));
+    fetch('/api/movies').then(res => res.json()).then(data => setMovies(Array.isArray(data) ? data : []));
+    fetch('/api/shows').then(res => res.json()).then(data => setShows(Array.isArray(data) ? data : []));
   }, []);
 
   const allContent = [...movies, ...shows];
@@ -25,7 +25,7 @@ export const MyListPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24 space-y-8 animate-in fade-in">
       <div>
-        <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">My VYBE+ Library</h1>
+        <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">My Cinevo Library</h1>
         <p className="text-zinc-400 text-base mt-2">Your personal watchlist, continue watching queue, and saved favorites.</p>
       </div>
 
@@ -35,7 +35,7 @@ export const MyListPage: React.FC = () => {
           onClick={() => setActiveTab('watchlist')}
           className={`flex items-center space-x-2 px-6 py-3 rounded-2xl text-sm font-bold transition ${
             activeTab === 'watchlist'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+              ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
               : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
           }`}
         >
@@ -47,7 +47,7 @@ export const MyListPage: React.FC = () => {
           onClick={() => setActiveTab('history')}
           className={`flex items-center space-x-2 px-6 py-3 rounded-2xl text-sm font-bold transition ${
             activeTab === 'history'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+              ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
               : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
           }`}
         >
@@ -81,7 +81,7 @@ export const MyListPage: React.FC = () => {
                 <div className="flex-1 space-y-2">
                   <h4 className="font-bold text-white text-base">{h.content.title}</h4>
                   <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden border border-zinc-800">
-                    <div className="bg-purple-600 h-full" style={{ width: `${Math.min(100, (h.progress / h.duration) * 100)}%` }} />
+                    <div className="bg-red-600 h-full" style={{ width: `${Math.min(100, (h.progress / (h.duration || 1)) * 100)}%` }} />
                   </div>
                   <p className="text-xs text-zinc-400">Last watched: {new Date(h.updatedAt).toLocaleDateString()}</p>
                 </div>

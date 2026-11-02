@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Plus, Check, Star, Info } from 'lucide-react';
+import { Play, Plus, Check, Star, Info, Film } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Movie, TVShow } from '../types';
 
@@ -9,40 +9,49 @@ interface MovieCardProps {
 }
 
 export const MovieCard: React.FC<MovieCardProps> = ({ item, type = 'movie' }) => {
-  const { setSelectedContent, setPlayingItem, watchlist, toggleWatchlist, isInWatchlist } = useAuth();
+  const { setSelectedContent, setPlayingItem, toggleWatchlist, isInWatchlist } = useAuth();
   const inList = isInWatchlist(item.id);
 
   return (
-    <div className="group relative flex-none w-[220px] sm:w-[260px] rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800/80 shadow-lg hover:shadow-2xl hover:shadow-purple-600/20 hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1.5 cursor-pointer">
+    <div className="group relative flex-none w-[220px] sm:w-[260px] rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800/80 shadow-lg hover:shadow-2xl hover:shadow-red-600/20 hover:border-red-500/50 transition-all duration-300 hover:-translate-y-1.5 cursor-pointer">
       {/* Poster Image */}
       <div 
         onClick={() => setSelectedContent({ ...item, contentType: type })}
-        className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-950"
+        className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-950 flex items-center justify-center"
       >
-        <img
-          src={item.posterUrl}
-          alt={item.title}
-          className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
-        />
+        {item.posterUrl ? (
+          <img
+            src={item.posterUrl}
+            alt={item.title}
+            className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center p-4 text-center space-y-2">
+            <Film className="w-12 h-12 text-zinc-700" />
+            <span className="text-xs font-bold text-zinc-500">{item.title}</span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
         
         {/* Rating Badge */}
         <div className="absolute top-3 right-3 flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-zinc-950/80 backdrop-blur-md border border-zinc-800 text-xs font-bold text-amber-400 shadow">
           <Star className="w-3.5 h-3.5 fill-amber-400" />
-          <span>{item.averageRating}</span>
+          <span>{item.averageRating || 0}</span>
         </div>
 
         {/* Age Rating Badge */}
-        <div className="absolute top-3 left-3 px-2 py-0.5 rounded bg-zinc-950/80 backdrop-blur-md border border-zinc-800 text-[11px] font-bold text-purple-400">
-          {item.ageRating}
-        </div>
+        {item.ageRating && (
+          <div className="absolute top-3 left-3 px-2 py-0.5 rounded bg-zinc-950/80 backdrop-blur-md border border-zinc-800 text-[11px] font-bold text-red-500">
+            {item.ageRating}
+          </div>
+        )}
       </div>
 
       {/* Info & Quick Actions */}
       <div className="p-4 space-y-2.5">
         <h3 
           onClick={() => setSelectedContent({ ...item, contentType: type })}
-          className="font-bold text-white text-base truncate group-hover:text-purple-400 transition-colors"
+          className="font-bold text-white text-base truncate group-hover:text-red-500 transition-colors"
         >
           {item.title}
         </h3>
@@ -55,7 +64,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({ item, type = 'movie' }) =>
         <div className="flex items-center space-x-2 pt-1">
           <button
             onClick={() => setPlayingItem({ item, type: 'movie' })}
-            className="flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition shadow-md shadow-purple-600/30"
+            className="flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition shadow-md shadow-red-600/30"
           >
             <Play className="w-3.5 h-3.5 fill-white" />
             <span>Play</span>
@@ -68,7 +77,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({ item, type = 'movie' }) =>
             }}
             className={`p-2 rounded-xl border transition ${
               inList 
-                ? 'bg-purple-600/20 border-purple-500 text-purple-400' 
+                ? 'bg-red-600/20 border-red-500 text-red-500' 
                 : 'bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300'
             }`}
             title={inList ? 'Remove from Watchlist' : 'Add to Watchlist'}

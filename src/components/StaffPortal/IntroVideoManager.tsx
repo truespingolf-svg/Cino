@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Video, CheckCircle2, UploadCloud, Link as LinkIcon, Loader2, Play } from 'lucide-react';
+import { Video, CheckCircle2, UploadCloud, Loader2 } from 'lucide-react';
 import { uploadVideoFile, UploadProgress } from '../../utils/mediaUploader';
 import { formatBytes, isValidVideoFormat } from '../../utils/streaming';
 
@@ -12,6 +12,7 @@ export const IntroVideoManager: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [customUrl, setCustomUrl] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings/intro')
@@ -24,10 +25,7 @@ export const IntroVideoManager: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     if (!isValidVideoFormat(file.name, file.type)) {
       setError('Please select a valid video file (.mp4, .m4v, .mkv, .mov, .webm).');
       return;
@@ -61,6 +59,31 @@ export const IntroVideoManager: React.FC = () => {
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  };
+
   const handleSaveCustomUrl = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customUrl.trim()) return;
@@ -92,7 +115,7 @@ export const IntroVideoManager: React.FC = () => {
       <div>
         <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Global Mandatory Intro Video</h2>
         <p className="text-zinc-400 text-sm mt-1">
-          Upload any MP4 video or large master video file. It will automatically play before every movie and show episode without a skip button.
+          Upload any MP4 video or drag & drop a large master video file. It will automatically play before every movie and show episode without a skip button.
         </p>
       </div>
 
@@ -105,26 +128,43 @@ export const IntroVideoManager: React.FC = () => {
             </div>
             <div>
               <h3 className="text-lg font-bold text-white">Upload MP4 Video File</h3>
-              <p className="text-xs text-zinc-400">Supports standard MP4, WebM, MKV, MOV (handles multi-GB files)</p>
+              <p className="text-xs text-zinc-400">Drag & drop or browse .MP4, .WebM, .MKV, .MOV (handles multi-GB files)</p>
             </div>
           </div>
 
-          <label className="border-2 border-dashed border-zinc-700 hover:border-red-500 bg-zinc-950/80 rounded-2xl p-8 flex flex-col items-center justify-center space-y-3 cursor-pointer transition group">
-            <div className="p-4 rounded-2xl bg-red-600/10 text-red-500 group-hover:scale-110 transition-transform">
+          <div
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center space-y-3 cursor-pointer transition-all ${
+              isDragging
+                ? 'border-red-500 bg-red-600/10 scale-[1.01]'
+                : 'border-zinc-700 hover:border-red-500 bg-zinc-950/80'
+            }`}
+          >
+            <div className="p-4 rounded-2xl bg-red-600/10 text-red-500 transition-transform">
               <UploadCloud className="w-8 h-8" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-bold text-white">Click or drag & drop video file</p>
+              <p className="text-sm font-bold text-white">Drag & drop video file here, or click to browse</p>
               <p className="text-xs text-zinc-500 mt-1">.MP4, .MKV, .MOV, .WEBM — Any file size supported</p>
             </div>
             <input
               type="file"
+              id="intro-video-file-input"
               accept="video/mp4,video/x-m4v,video/webm,video/quicktime,video/x-matroska,video/*,.mp4,.m4v,.mov,.webm,.mkv"
               onChange={handleFileUpload}
               disabled={isUploading}
               className="hidden"
             />
-          </label>
+            <label
+              htmlFor="intro-video-file-input"
+              className="px-5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs cursor-pointer transition mt-2"
+            >
+              Browse MP4 File
+            </label>
+          </div>
 
           {/* Upload Progress Bar */}
           {isUploading && (
@@ -213,7 +253,7 @@ export const IntroVideoManager: React.FC = () => {
               <div className="aspect-video rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col items-center justify-center p-6 text-center space-y-2">
                 <Video className="w-10 h-10 text-zinc-700" />
                 <p className="text-sm font-semibold text-zinc-500">No intro video currently active</p>
-                <p className="text-xs text-zinc-600">Upload an MP4 file on the left to set an intro video</p>
+                <p className="text-xs text-zinc-600">Drag & drop or upload an MP4 file on the left</p>
               </div>
             )}
           </div>

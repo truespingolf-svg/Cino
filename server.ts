@@ -164,11 +164,19 @@ async function startServer() {
   });
 
   app.post('/api/shows', (req, res) => {
+    const now = Date.now();
     const newShow = {
-      id: 's-' + Date.now(),
+      id: 's-' + now,
       averageRating: 0,
       ratingCount: 0,
-      seasons: [],
+      seasons: req.body.seasons && req.body.seasons.length > 0 ? req.body.seasons : [
+        {
+          id: 'season-' + now,
+          seasonNumber: 1,
+          title: 'Season 1',
+          episodes: []
+        }
+      ],
       ...req.body
     };
     db.shows.unshift(newShow);
@@ -213,6 +221,15 @@ async function startServer() {
     };
     season.episodes.push(newEpisode);
     res.status(201).json(newEpisode);
+  });
+
+  app.delete('/api/shows/:showId/seasons/:seasonId/episodes/:episodeId', (req, res) => {
+    const show = db.shows.find((s: any) => s.id === req.params.showId);
+    if (!show) return res.status(404).json({ error: 'Show not found' });
+    const season = show.seasons.find((se: any) => se.id === req.params.seasonId);
+    if (!season) return res.status(404).json({ error: 'Season not found' });
+    season.episodes = season.episodes.filter((e: any) => e.id !== req.params.episodeId);
+    res.json({ success: true });
   });
 
   // News

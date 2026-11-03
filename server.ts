@@ -1,9 +1,16 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Clean Database State & Security Settings (No demo data)
 let db = {
@@ -26,7 +33,86 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT || 3000);
 
-  app.use(express.json());
+  // Increase payload limit for large metadata
+  app.use(express.json({ limit: '100mb' }));
+  app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
+  // Serve static uploaded media with byte-range and MP4 header support
+  app.use('/uploads', express.static(uploadsDir, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.mp4')) {
+        res.setHeader('Content-Type', 'video/mp4');
+      } else if (filePath.endsWith('.webm')) {
+        res.setHeader('Content-Type', 'video/webm');
+      } else if (filePath.endsWith('.mkv')) {
+        res.setHeader('Content-Type', 'video/x-matroska');
+      } else if (filePath.endsWith('.mov')) {
+        res.setHeader('Content-Type', 'video/quicktime');
+      }
+      res.setHeader('Accept-Ranges', 'bytes');
+    }
+  }));
+
+  // Media Streaming Upload Endpoint (supports large MP4s, MKVs, WebMs of any size)
+  app.post('/api/upload-media', (req, res) => {
+    const rawFilename = req.headers['x-filename'];
+    const originalName = rawFilename ? decodeURIComponent(rawFilename as string) : `video_${Date.now()}.mp4`;
+    const safeExt = path.extname(originalName) || '.mp4';
+    const baseClean = path.basename(originalName, safeExt).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeFilename = `${Date.now()}_${baseClean}${safeExt}`;
+    const targetFilePath = path.join(uploadsDir, safeFilename);
+    const writeStream = fs.createWriteStream(targetFilePath);
+
+    req.pipe(writeStream);
+
+    writeStream.on('finish', () => {
+      try {
+        const stats = fs.statSync(targetFilePath);
+        const formattedSize = stats.size > 1073741824
+          ? `${(stats.size / 1073741824).toFixed(2)} GB`
+          : `${(stats.size / 1048576).toFixed(1)} MB`;
+
+        const playbackUrl = `/uploads/${safeFilename}`;
+
+        const job = {
+          id: 'job-' + Date.now(),
+          fileName: originalName,
+          fileSize: formattedSize,
+          progress: 100,
+          status: 'completed',
+          playbackUrl,
+          createdAt: new Date().toISOString()
+        };
+        db.uploadJobs.unshift(job);
+
+        res.json({
+          success: true,
+          fileName: originalName,
+          fileSize: formattedSize,
+          url: playbackUrl,
+          playbackUrl
+        });
+      } catch {
+        res.json({
+          success: true,
+          fileName: originalName,
+          fileSize: 'Large file',
+          url: `/uploads/${safeFilename}`,
+          playbackUrl: `/uploads/${safeFilename}`
+        });
+      }
+    });
+
+    writeStream.on('error', (err) => {
+      console.error('File stream error:', err);
+      res.status(500).json({ error: 'Failed to write video file' });
+    });
+
+    req.on('error', (err) => {
+      console.error('Upload stream error:', err);
+      writeStream.destroy();
+    });
+  });
 
   // API Routes: Movies
   app.get('/api/movies', (req, res) => {
@@ -190,7 +276,6 @@ async function startServer() {
       return res.status(400).json({ error: 'Invalid code' });
     }
     db.settings.staffCode = newCode;
-    // Invalidate all active staff sessions immediately
     db.activeStaffSessions.clear();
     res.json({ success: true });
   });
@@ -253,33 +338,43 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  // Upload simulation
-  app.post('/api/upload', (req, res) => {
-    const { fileName, fileSize } = req.body;
-    const newJob = {
-      id: 'job-' + Date.now(),
-      fileName: fileName || 'media_upload.mp4',
-      fileSize: fileSize || '2.4 GB',
-      progress: 100,
-      status: 'completed',
-      playbackUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-      createdAt: new Date().toISOString()
-    };
-    db.uploadJobs.unshift(newJob);
-    res.status(201).json(newJob);
+  // Upload jobs list
+  app.get('/api/uploads', (req, res) => {
+    res.json(db.uploadJobs);
   });
 
   // Stats
   app.get('/api/stats', (req, res) => {
     const totalEpisodes = db.shows.reduce((acc: number, show: any) => acc + show.seasons.reduce((sAcc: number, s: any) => sAcc + s.episodes.length, 0), 0);
     const totalSeasons = db.shows.reduce((acc: number, show: any) => acc + show.seasons.length, 0);
+    
+    // Calculate storage size from uploads directory
+    let totalSizeBytes = 0;
+    try {
+      const files = fs.readdirSync(uploadsDir);
+      files.forEach(file => {
+        try {
+          const stat = fs.statSync(path.join(uploadsDir, file));
+          totalSizeBytes += stat.size;
+        } catch {
+          // ignore
+        }
+      });
+    } catch {
+      // ignore
+    }
+
+    const storageUsed = totalSizeBytes > 1073741824
+      ? `${(totalSizeBytes / 1073741824).toFixed(2)} GB`
+      : `${(totalSizeBytes / 1048576).toFixed(1)} MB`;
+
     res.json({
       totalMovies: db.movies.length,
       totalShows: db.shows.length,
       totalSeasons,
       totalEpisodes,
       totalNews: db.news.length,
-      storageUsed: '0 GB',
+      storageUsed,
       activeUploads: db.uploadJobs.length
     });
   });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { filterAndSortContent, extractUniqueGenres, validateAccessCode } from './streaming';
+import { filterAndSortContent, extractUniqueGenres, validateAccessCode, formatBytes, isValidVideoFormat } from './streaming';
 
 test('validateAccessCode identifies master code 2514 correctly', () => {
   const result = validateAccessCode('2514', '2513', '2514');
@@ -40,4 +40,21 @@ test('filterAndSortContent filters by genre and sorts by rating', () => {
   assert.equal(filtered.length, 2);
   assert.equal(filtered[0].title, 'High Rating Sci-Fi');
   assert.equal(filtered[1].title, 'Low Rating Sci-Fi');
+});
+
+test('isValidVideoFormat validates mp4, mkv, mov, and webm files', () => {
+  assert.equal(isValidVideoFormat('movie.mp4', 'video/mp4'), true);
+  assert.equal(isValidVideoFormat('movie.MP4'), true);
+  assert.equal(isValidVideoFormat('intro.mkv'), true);
+  assert.equal(isValidVideoFormat('clip.mov'), true);
+  assert.equal(isValidVideoFormat('video.webm', 'video/webm'), true);
+  assert.equal(isValidVideoFormat('image.jpg', 'image/jpeg'), false);
+  assert.equal(isValidVideoFormat('document.pdf'), false);
+});
+
+test('formatBytes correctly formats file sizes from MB to GB', () => {
+  assert.equal(formatBytes(0), '0 Bytes');
+  assert.equal(formatBytes(1024), '1 KB');
+  assert.equal(formatBytes(1048576 * 50), '50 MB');
+  assert.equal(formatBytes(1073741824 * 2.5), '2.5 GB');
 });

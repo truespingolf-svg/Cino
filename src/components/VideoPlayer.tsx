@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, ArrowLeft, Settings, FastForward } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, ArrowLeft, Settings, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const VideoPlayer: React.FC = () => {
@@ -16,6 +16,7 @@ export const VideoPlayer: React.FC = () => {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [quality] = useState('1080p HDR');
   const [showSettings, setShowSettings] = useState(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
 
   const [introVideoUrl, setIntroVideoUrl] = useState('');
   const [isPlayingIntro, setIsPlayingIntro] = useState(false);
@@ -32,7 +33,7 @@ export const VideoPlayer: React.FC = () => {
           setIsPlayingIntro(true);
         }
       })
-      .catch(err => console.error('Failed to load intro video', err));
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -51,6 +52,24 @@ export const VideoPlayer: React.FC = () => {
     };
   }, [isPlaying]);
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === 'm' || e.key === 'M') {
+        toggleVolume();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      } else if (e.key === 'Escape') {
+        setPlayingItem(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, isMuted]);
+
   if (!playingItem) return null;
 
   const { item, type, episode, season } = playingItem;
@@ -64,10 +83,10 @@ export const VideoPlayer: React.FC = () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
+        setIsPlaying(false);
       } else {
-        videoRef.current.play();
+        videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -86,9 +105,10 @@ export const VideoPlayer: React.FC = () => {
       // Intro finished, transition to main feature
       setIsPlayingIntro(false);
       setCurrentTime(0);
+      setPlaybackError(null);
       if (videoRef.current) {
         videoRef.current.src = mainVideoUrl;
-        videoRef.current.play();
+        videoRef.current.play().catch(() => setIsPlaying(false));
       }
     } else {
       setPlayingItem(null);
@@ -123,11 +143,11 @@ export const VideoPlayer: React.FC = () => {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
+      document.documentElement.requestFullscreen().catch(() => {});
       setIsFullscreen(true);
     } else {
       if (document.exitFullscreen) {
-        document.exitFullscreen();
+        document.exitFullscreen().catch(() => {});
         setIsFullscreen(false);
       }
     }
@@ -154,11 +174,47 @@ export const VideoPlayer: React.FC = () => {
         src={currentVideoSrc}
         autoPlay
         playsInline
+        preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleVideoEnded}
+        onError={() => {
+          setPlaybackError('The video stream could not be loaded or the format requires re-encoding. Click retry or check video URL.');
+        }}
         onClick={togglePlay}
         className="w-full h-full object-contain cursor-pointer"
       />
+
+      {/* Playback Error Overlay */}
+      {playbackError && (
+        <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 text-center space-y-4 z-40">
+          <div className="w-16 h-16 rounded-3xl bg-red-600/20 text-red-500 border border-red-500/30 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-bold text-white">Playback Error</h3>
+          <p className="text-sm text-zinc-400 max-w-md">{playbackError}</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setPlaybackError(null);
+                if (videoRef.current) {
+                  videoRef.current.load();
+                  videoRef.current.play().catch(() => {});
+                }
+              }}
+              className="flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Retry Playback</span>
+            </button>
+            <button
+              onClick={() => setPlayingItem(null)}
+              className="px-6 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 hover:text-white text-xs font-bold uppercase tracking-wider"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top Bar */}
       <div className={`absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -166,6 +222,7 @@ export const VideoPlayer: React.FC = () => {
           <button
             onClick={() => setPlayingItem(null)}
             className="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-white border border-zinc-700/80 backdrop-blur-md transition shadow-lg"
+            aria-label="Exit player"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
@@ -182,6 +239,7 @@ export const VideoPlayer: React.FC = () => {
             <button
               onClick={() => setShowSettings(!showSettings)}
               className="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-white border border-zinc-700/80 backdrop-blur-md transition shadow-lg"
+              aria-label="Player settings"
             >
               <Settings className="w-5 h-5" />
             </button>
@@ -218,6 +276,7 @@ export const VideoPlayer: React.FC = () => {
             value={currentTime}
             onChange={handleSeek}
             disabled={isPlayingIntro}
+            aria-label="Video seek"
             className={`w-full h-1.5 bg-zinc-800 rounded-lg appearance-none accent-red-600 ${isPlayingIntro ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:h-2.5'} transition-all`}
           />
           <div className="flex justify-between text-xs text-zinc-400 font-medium">
@@ -232,12 +291,13 @@ export const VideoPlayer: React.FC = () => {
             <button
               onClick={togglePlay}
               className="p-3 rounded-xl bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? <Pause className="w-6 h-6 fill-white" /> : <Play className="w-6 h-6 fill-white" />}
             </button>
 
             <div className="flex items-center space-x-2">
-              <button onClick={toggleVolume} className="text-zinc-300 hover:text-white">
+              <button onClick={toggleVolume} className="text-zinc-300 hover:text-white" aria-label="Mute toggle">
                 {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
               </button>
               <input
@@ -247,6 +307,7 @@ export const VideoPlayer: React.FC = () => {
                 step={0.05}
                 value={isMuted ? 0 : volume}
                 onChange={handleVolumeChange}
+                aria-label="Volume slider"
                 className="w-20 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-red-600"
               />
             </div>
@@ -256,6 +317,7 @@ export const VideoPlayer: React.FC = () => {
             <button
               onClick={toggleFullscreen}
               className="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/80 transition"
+              aria-label="Fullscreen toggle"
             >
               {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
             </button>
